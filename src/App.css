@@ -1,0 +1,43 @@
+/* App.css (updated for modern look with glass effect) */
+#root {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
+    background: linear-gradient(to bottom right, #1e293b, #0f172a);
+    min-height: 100vh;
+    color: #fff;
+  }
+  
+  /* Card base style */
+  .card {
+    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 2em;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+  .card:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  }
+  
+  /* Smooth transitions */
+  .modal-transition {
+    transition: all 0.3s ease;
+  }
+  
+  /* Custom scrollbar for track list */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #1f2937;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 4px;
+  }
+  
