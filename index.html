@@ -9,5 +9,21 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <!-- Now Playing Bar -->
+    <div id="now-playing">
+      <div id="track-info">Track info here</div>
+      <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+      </div>
+      <button id="play-pause-btn" onclick="togglePlayPause()">Play/Pause</button>
+    </div>
+
+<!-- Lyrics Display -->
+    <div id="lyrics">Lyrics will appear here...</div>
+
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <script src="js/app.js"></script> <!-- Link to your app.js -->
+
   </body>
 </html>
