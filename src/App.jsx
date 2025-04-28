@@ -1,19 +1,16 @@
-// App.jsx with Spotify Web Playback SDK + Now Playing Bar 
-import { useEffect, useState, useRef } from "react";
-import './App.css';
-import PlaylistCard from "./components/PlaylistCard";
-import { FiMusic, FiLogIn, FiLogOut } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { FiMusic, FiLogIn, FiChevronRight, FiX } from "react-icons/fi";
+import { motion } from "framer-motion";
 
 const CLIENT_ID = "ba07961942ce4be4b164c9feaaa33989";
 const REDIRECT_URI = "http://127.0.0.1:5173/callback";
 const SCOPES = [
   "user-read-email",
-  "user-read-private",
   "playlist-read-private",
   "user-library-read",
-  "streaming",
   "user-read-playback-state",
-  "user-modify-playback-state"
+  "user-read-currently-playing",
+  "streaming"
 ].join(" ");
 
 const generateRandomString = (length) => {
@@ -39,37 +36,49 @@ const base64UrlEncode = (buffer) => {
 function App() {
   const [profile, setProfile] = useState(null);
   const [playlists, setPlaylists] = useState([]);
-  const [darkMode, setDarkMode] = useState(localStorage.getItem("darkMode") === "true");
-  const [player, setPlayer] = useState(null);
-  const [currentTrack, setCurrentTrack] = useState(null);
-  const [paused, setPaused] = useState(true);
-  const [deviceId, setDeviceId] = useState(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState(null);
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem("darkMode") === "true"
+  );
 
-  const token = localStorage.getItem("access_token");
   const fetchWithToken = async (url) => {
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
+    const token = localStorage.getItem("access_token");
+    try {
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (err) {
+      throw err;
+    }
   };
 
   const handleLogin = async () => {
-    const codeVerifier = generateRandomString(128);
-    const hashed = await sha256(codeVerifier);
-    const codeChallenge = base64UrlEncode(hashed);
-    sessionStorage.setItem("code_verifier", codeVerifier);
+    setLoading(true);
+    try {
+      const codeVerifier = generateRandomString(128);
+      const hashed = await sha256(codeVerifier);
+      const codeChallenge = base64UrlEncode(hashed);
 
-    const authUrl = new URL("https://accounts.spotify.com/authorize");
-    authUrl.searchParams.append("client_id", CLIENT_ID);
-    authUrl.searchParams.append("response_type", "code");
-    authUrl.searchParams.append("redirect_uri", REDIRECT_URI);
-    authUrl.searchParams.append("scope", SCOPES);
-    authUrl.searchParams.append("code_challenge_method", "S256");
-    authUrl.searchParams.append("code_challenge", codeChallenge);
+      sessionStorage.setItem("code_verifier", codeVerifier);
 
-    window.location.href = authUrl.toString();
+      const authUrl = new URL("https://accounts.spotify.com/authorize");
+      authUrl.searchParams.append("client_id", CLIENT_ID);
+      authUrl.searchParams.append("response_type", "code");
+      authUrl.searchParams.append("redirect_uri", REDIRECT_URI);
+      authUrl.searchParams.append("scope", SCOPES);
+      authUrl.searchParams.append("code_challenge_method", "S256");
+      authUrl.searchParams.append("code_challenge", codeChallenge);
+
+      window.location.href = authUrl.toString();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -80,115 +89,110 @@ function App() {
   };
 
   useEffect(() => {
-    const html = document.documentElement;
-    html.classList.toggle("dark", darkMode);
-    localStorage.setItem("darkMode", darkMode);
-  }, [darkMode]);
-
-  useEffect(() => {
-    const query = new URLSearchParams(window.location.search);
-    const code = query.get("code");
-    const verifier = sessionStorage.getItem("code_verifier");
-    const existingToken = localStorage.getItem("access_token");
-
-    const fetchToken = async () => {
-      const response = await fetch("https://accounts.spotify.com/api/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: CLIENT_ID,
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: REDIRECT_URI,
-          code_verifier: verifier
-        })
-      });
-      const data = await response.json();
-      localStorage.setItem("access_token", data.access_token);
-      window.history.replaceState({}, document.title, "/");
-      window.location.reload();
-    };
-
-    if (!existingToken && code && verifier) fetchToken();
-  }, []);
-
-  useEffect(() => {
-    if (!token) return;
-    const fetchUserData = async () => {
+    const loadData = async () => {
       setLoading(true);
       try {
-        const [me, myPlaylists] = await Promise.all([
+        const [user, userPlaylists] = await Promise.all([
           fetchWithToken("https://api.spotify.com/v1/me"),
           fetchWithToken("https://api.spotify.com/v1/me/playlists?limit=10")
         ]);
-        setProfile(me);
-        setPlaylists(myPlaylists.items);
+        setProfile(user);
+        setPlaylists(userPlaylists.items);
       } catch (err) {
-        console.error("Error loading user data:", err);
+        console.error("Failed to load data", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchUserData();
-  }, [token]);
 
-  const transferPlaybackHere = async (device_id) => {
-    await fetch("https://api.spotify.com/v1/me/player", {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ device_ids: [device_id], play: false })
-    });
-  };
+    if (localStorage.getItem("access_token")) loadData();
+  }, []);
 
   useEffect(() => {
-    if (!token || window.Spotify === undefined) return;
-    const script = document.createElement("script");
-    script.src = "https://sdk.scdn.co/spotify-player.js";
-    script.async = true;
-    document.body.appendChild(script);
+    const html = document.documentElement;
+    if (darkMode) {
+      html.classList.add("dark");
+    } else {
+      html.classList.remove("dark");
+    }
+    localStorage.setItem("darkMode", darkMode);
+  }, [darkMode]);
 
-    window.onSpotifyWebPlaybackSDKReady = () => {
-      const _player = new window.Spotify.Player({
-        name: "OneTune Player",
-        getOAuthToken: cb => cb(token),
-        volume: 0.5
+  // Poll now playing song every 30s
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const token = localStorage.getItem("access_token");
+      try {
+        const res = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.status === 200) {
+          const data = await res.json();
+          if (data && data.item) {
+            setCurrentTrack(data.item);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch currently playing", err);
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Poll playlists every 60s to update real-time
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const token = localStorage.getItem("access_token");
+      try {
+        const res = await fetch("https://api.spotify.com/v1/me/playlists?limit=10", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setPlaylists(data.items);
+      } catch (err) {
+        console.error("Failed to refresh playlists", err);
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchPlaylistTracks = async (playlistId) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
       });
-      setPlayer(_player);
-
-      _player.addListener("ready", ({ device_id }) => {
-        setDeviceId(device_id);
-        transferPlaybackHere(device_id);
+      const data = await response.json();
+      setSelectedPlaylist({
+        ...playlists.find(p => p.id === playlistId),
+        tracks: data.items
       });
-
-      _player.addListener("player_state_changed", state => {
-        if (!state) return;
-        setCurrentTrack(state.track_window.current_track);
-        setPaused(state.paused);
-      });
-
-      _player.connect();
-    };
-  }, [token]);
-
-  const handlePlay = async (uri) => {
-    await fetch("https://api.spotify.com/v1/me/player/play", {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ uris: [uri] })
-    });
+    } catch (err) {
+      console.error("Error fetching tracks:", err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  {loading && (
+    <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50">
+      <div className="text-white text-2xl font-bold animate-pulse">Loading...</div>
+    </div>
+  )}
+  
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="bg-gray-800 p-8 rounded-xl max-w-md w-full text-center border border-gray-700">
-          <h1 className="text-3xl font-bold mb-6 text-blue-400">OneTune</h1>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-gray-900 to-black text-white">
+        <div className="bg-white/10 dark:bg-black/20 backdrop-blur-lg p-8 rounded-2xl max-w-md w-full text-center border border-white/10 shadow-lg">
+          <h1 className="text-3xl font-bold mb-6 text-blue-400">Music Hub</h1>
           <button
             onClick={handleLogin}
-            className="bg-blue-600 hover:bg-blue-500 font-bold py-3 px-8 rounded-full w-full transition"
+            className="bg-green-500 hover:bg-green-400 font-bold py-3 px-8 rounded-full w-full transition"
           >
-            <FiLogIn className="inline mr-2" />
-            Login with Spotify
+            <FiLogIn className="inline mr-2" /> Login with Spotify
           </button>
         </div>
       </div>
@@ -196,45 +200,61 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-      <div className="p-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-blue-400">OneTune 🎵</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-400">{profile.display_name}</span>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-          >
-            <FiLogOut className="inline mr-1" /> Logout
-          </button>
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-6">
+      {/* Header */}
+      <header className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-green-400">Music Hub</h1>
+          <p className="text-gray-400">{profile.email}</p>
         </div>
-      </div>
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="ml-auto bg-gray-700 dark:bg-gray-300 text-white dark:text-black px-4 py-2 rounded-lg transition hover:opacity-80"
+        >
+          {darkMode ? "☀️ Light" : "🌙 Dark"}
+        </button>
+      </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+      {/* Playlist Grid */}
+      <div className="flex flex-wrap gap-6 justify-center">
         {playlists.map((playlist) => (
-          <PlaylistCard key={playlist.id} playlist={playlist} onPlay={handlePlay} />
+          <motion.div
+            key={playlist.id}
+            whileHover={{ scale: 1.05 }}
+            className="bg-white/10 dark:bg-black/20 backdrop-blur-md p-4 rounded-2xl shadow-lg transition cursor-pointer w-[180px]"
+            onClick={() => fetchPlaylistTracks(playlist.id)}
+          >
+            <div className="relative mb-3">
+              {playlist.images?.[0]?.url ? (
+                <img
+                  src={playlist.images[0].url}
+                  alt={playlist.name}
+                  className="rounded-lg w-[160px] h-[160px] object-cover mx-auto"
+                />
+              ) : (
+                <div className="w-[160px] h-[160px] bg-gray-700 rounded-lg flex items-center justify-center mx-auto">
+                  <FiMusic className="text-4xl text-gray-500" />
+                </div>
+              )}
+            </div>
+            <h3 className="text-lg font-semibold truncate">{playlist.name}</h3>
+            <p className="text-sm text-gray-400">{playlist.tracks.total} tracks</p>
+          </motion.div>
         ))}
       </div>
 
+      {/* Now Playing Bar */}
       {currentTrack && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white p-4 flex items-center gap-4 shadow-lg">
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white/10 dark:bg-black/20 backdrop-blur-md px-6 py-3 rounded-full flex items-center gap-4 shadow-lg">
           <img
-            src={currentTrack.album.images[0].url}
-            alt={currentTrack.name}
-            className="w-16 h-16 object-cover rounded mb-2"
+            src={currentTrack.album?.images?.[0]?.url}
+            alt="Album Art"
+            className="w-10 h-10 rounded object-cover"
           />
-          <div className="flex-1">
-            <div className="font-semibold truncate">{currentTrack.name}</div>
-            <div className="text-sm text-gray-400 truncate">
-              {currentTrack.artists.map(a => a.name).join(", ")}
-            </div>
+          <div className="text-left">
+            <h4 className="text-sm font-bold">{currentTrack.name}</h4>
+            <p className="text-xs text-gray-400">{currentTrack.artists.map(a => a.name).join(", ")}</p>
           </div>
-          <button
-            onClick={() => player.togglePlay()}
-            className="bg-blue-500 px-4 py-2 rounded text-white"
-          >
-            {paused ? "Play" : "Pause"}
-          </button>
         </div>
       )}
     </div>

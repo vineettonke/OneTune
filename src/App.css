@@ -1,92 +1,71 @@
-/* App.css (updated for modern look with glass effect) */
+/* App.css (Spotify-like updated styles) */
+
+/* Root layout */
 #root {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 2rem;
-    text-align: center;
-    background: linear-gradient(to bottom right, #1e293b, #0f172a);
-    min-height: 100vh;
-    color: #fff;
-  }
-  
-  /* Card base style */
-  .card {
-    backdrop-filter: blur(10px);
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 1rem;
-    padding: 2em;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    transition: background 0.3s ease, box-shadow 0.3s ease;
-  }
-  .card:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-  }
-  
-  /* Smooth transitions */
-  .modal-transition {
-    transition: all 0.3s ease;
-  }
-  
-  /* Custom scrollbar for track list */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: #1f2937;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #374151;
-    border-radius: 4px;
-  }
-  #now-playing {
-    background-color: #333;
-    color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 300px;
-  }
-  
-  #track-info {
-    font-size: 16px;
-    margin-bottom: 10px;
-  }
-  
-  #progress-bar-container {
-    height: 5px;
-    background-color: #444;
-    border-radius: 5px;
-  }
-  
-  #progress-bar {
-    width: 0;
-    height: 100%;
-    background-color: #1db954;
-    border-radius: 5px;
-  }
-  
-  button {
-    background-color: #1db954;
-    border: none;
-    padding: 10px;
-    border-radius: 50%;
-    cursor: pointer;
-    color: #fff;
-    font-size: 18px;
-  }
-  
-  button:hover {
-    background-color: #1ed760;
-  }
-  
-  #lyrics {
-    margin-top: 20px;
-    color: #ddd;
-    font-size: 14px;
-  }
-  
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: linear-gradient(to bottom right, #111827, #000000);
+  min-height: 100vh;
+  color: #fff;
+}
+
+/* Cards (Glass Effect) */
+.card {
+  backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+}
+.card:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+  transform: scale(1.03);
+}
+
+/* Modal and Now Playing Blur */
+.modal-transition {
+  transition: all 0.3s ease;
+}
+.backdrop-blur {
+  backdrop-filter: blur(15px);
+}
+
+/* Smooth scroll and custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #111827;
+}
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
+/* Now Playing sticky bar */
+.now-playing-bar {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
